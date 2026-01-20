@@ -13,13 +13,7 @@ export class AIService {
             throw new Error('API Key is missing. Please check your settings.');
         }
 
-        // Handle trailing slash in apiUrl
-        const baseUrl = this.settings.apiUrl.endsWith('/')
-            ? this.settings.apiUrl.slice(0, -1)
-            : this.settings.apiUrl;
-
-        const url = `${baseUrl}/chat/completions`;
-
+        const url = this.getApiUrl();
         const body = {
             model: this.settings.model,
             messages: [
@@ -67,5 +61,53 @@ export class AIService {
             console.error('AutoTitle: AI Service Error', error);
             throw error;
         }
+    }
+
+    async testConnection(): Promise<boolean> {
+        if (!this.settings.apiKey) {
+            throw new Error('API Key is missing.');
+        }
+
+        const url = this.getApiUrl();
+        const body = {
+            model: this.settings.model,
+            messages: [
+                {
+                    role: 'user',
+                    content: 'Hello, are you there? Reply with "Yes".'
+                }
+            ],
+            max_tokens: 5,
+        };
+
+        try {
+            const response = await requestUrl({
+                url: url,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.settings.apiKey}`
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (response.status >= 200 && response.status < 300) {
+                return true;
+            } else {
+                throw new Error(`API Error: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('AutoTitle: Connection Test Error', error);
+            throw error;
+        }
+    }
+
+    private getApiUrl(): string {
+        // Handle trailing slash in apiUrl
+        const baseUrl = this.settings.apiUrl.endsWith('/')
+            ? this.settings.apiUrl.slice(0, -1)
+            : this.settings.apiUrl;
+
+        return `${baseUrl}/chat/completions`;
     }
 }

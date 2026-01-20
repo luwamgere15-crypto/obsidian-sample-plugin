@@ -8,6 +8,14 @@ export default class AutoTitlePlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
+        // Add ribbon icon
+        this.addRibbonIcon('pen-tool', 'Auto Rename', (evt: MouseEvent) => {
+            const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+            if (view && view.file) {
+                renameFileCommand(this, view.file);
+            }
+        });
+
 		// Add command
 		this.addCommand({
 			id: 'auto-rename',

@@ -1,5 +1,6 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, Notice } from "obsidian";
 import AutoTitlePlugin from "./main";
+import { AIService } from "./services/ai";
 
 export interface AutoTitleSettings {
 	apiKey: string;
@@ -71,5 +72,22 @@ export class AutoTitleSettingTab extends PluginSettingTab {
 					this.plugin.settings.prompt = value;
 					await this.plugin.saveSettings();
 				}));
+
+        new Setting(containerEl)
+            .setName('Test Connection')
+            .setDesc('Check if the API connection works with current settings.')
+            .addButton(button => button
+                .setButtonText('Test')
+                .onClick(async () => {
+                    const aiService = new AIService(this.plugin.settings);
+                    new Notice('Testing connection...');
+                    try {
+                        await aiService.testConnection();
+                        new Notice('Connection successful!');
+                    } catch (error) {
+                        new Notice('Connection failed. Check console for details.');
+                        console.error(error);
+                    }
+                }));
 	}
 }
