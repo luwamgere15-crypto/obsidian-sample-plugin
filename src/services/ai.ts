@@ -26,9 +26,12 @@ export class AIService {
                     content: content.substring(0, 5000) // Truncate content to avoid token limits
                 }
             ],
-            max_tokens: 50,
+            max_tokens: 1024,
             temperature: 0.7
         };
+
+        console.log('[AutoTitle] Request URL:', url);
+        console.log('[AutoTitle] Request body:', JSON.stringify(body, null, 2));
 
         try {
             const response = await requestUrl({
@@ -41,16 +44,31 @@ export class AIService {
                 body: JSON.stringify(body)
             });
 
+            console.log('[AutoTitle] Response status:', response.status);
+            console.log('[AutoTitle] Response headers:', JSON.stringify(response.headers, null, 2));
+            console.log('[AutoTitle] Response body:', JSON.stringify(response.json, null, 2));
+
             if (response.status >= 200 && response.status < 300) {
                 const data = response.json;
                 if (data.choices && data.choices.length > 0) {
-                     let title = data.choices[0].message.content.trim();
+                     const message = data.choices[0].message;
+                     let title = (message.content || '').trim();
+                     console.log('[AutoTitle] Raw title from AI:', title);
+                     if (!title && message.reasoning_content) {
+                         console.warn('[AutoTitle] Model returned empty content with reasoning_content. finish_reason:', data.choices[0].finish_reason);
+                         throw new Error('Model used all tokens for reasoning. Try increasing max_tokens or use a non-reasoning model.');
+                     }
+                     if (!title) {
+                         throw new Error('AI returned empty content.');
+                     }
                      // Basic cleanup - remove quotes if present
                      title = title.replace(/^["']|["']$/g, '');
                      // Remove characters that are illegal in file names
                      title = title.replace(/[\\/:*?"<>|]/g, '');
+                     console.log('[AutoTitle] Cleaned title:', title);
                      return title;
                 } else {
+                     console.error('[AutoTitle] No choices in response. Full response:', JSON.stringify(data, null, 2));
                      throw new Error('No choice returned from AI.');
                 }
             } else {
@@ -58,7 +76,7 @@ export class AIService {
             }
 
         } catch (error) {
-            console.error('AutoTitle: AI Service Error', error);
+            console.error('[AutoTitle] AI Service Error', error);
             throw error;
         }
     }
@@ -77,7 +95,7 @@ export class AIService {
                     content: 'Hello, are you there? Reply with "Yes".'
                 }
             ],
-            max_tokens: 5,
+            max_tokens: 100,
         };
 
         try {
